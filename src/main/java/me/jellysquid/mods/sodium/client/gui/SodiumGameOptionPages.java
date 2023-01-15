@@ -1,6 +1,7 @@
 package me.jellysquid.mods.sodium.client.gui;
 
 import com.google.common.collect.ImmutableList;
+import me.jellysquid.mods.sodium.client.SodiumClientMod;
 import me.jellysquid.mods.sodium.client.gui.options.*;
 import me.jellysquid.mods.sodium.client.gui.options.binding.compat.VanillaBooleanOptionBinding;
 import me.jellysquid.mods.sodium.client.gui.options.control.ControlValueFormatter;
@@ -9,7 +10,6 @@ import me.jellysquid.mods.sodium.client.gui.options.control.SliderControl;
 import me.jellysquid.mods.sodium.client.gui.options.control.TickBoxControl;
 import me.jellysquid.mods.sodium.client.gui.options.storage.MinecraftOptionsStorage;
 import me.jellysquid.mods.sodium.client.gui.options.storage.SodiumOptionsStorage;
-import me.jellysquid.mods.sodium.client.render.chunk.backends.multidraw.MultidrawChunkRenderBackend;
 import me.jellysquid.mods.sodium.client.util.UnsafeUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
@@ -236,20 +236,21 @@ public class SodiumGameOptionPages {
     }
 
     public static OptionPage advanced() {
+        boolean disableBlacklist = SodiumClientMod.options().advanced.ignoreDriverBlacklist;
+
         List<OptionGroup> groups = new ArrayList<>();
 
         groups.add(OptionGroup.createBuilder()
-                .add(OptionImpl.createBuilder(boolean.class, sodiumOpts)
-                        .setName("Use Chunk Multi-Draw")
-                        .setTooltip("Multi-draw allows multiple chunks to be rendered with fewer draw calls, greatly reducing CPU overhead when " +
-                                "rendering the world while also potentially allowing for more efficient GPU utilization. This optimization may cause " +
-                                "issues with some graphics drivers, so you should try disabling it if you are experiencing glitches.")
-                        .setControl(TickBoxControl::new)
-                        .setBinding((opts, value) -> opts.advanced.useChunkMultidraw = value, opts -> opts.advanced.useChunkMultidraw)
-                        .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
-                        .setImpact(OptionImpact.EXTREME)
-                        .setEnabled(MultidrawChunkRenderBackend.isSupported(sodiumOpts.getData().advanced.ignoreDriverBlacklist))
-                        .build())
+                .add(OptionImpl.createBuilder(SodiumGameOptions.ChunkRendererBackendOption.class, sodiumOpts)
+                        .setName("Chunk Renderer")
+                        .setTooltip("Modern versions of OpenGL provide features which can be used to greatly reduce driver overhead when rendering chunks. " +
+                                "You should use the latest feature set allowed by Sodium for optimal performance. If you're experiencing chunk rendering issues " +
+                                "or driver crashes, try using the older (and possibly more stable) feature sets.")
+                        .setControl((opt) -> new CyclingControl<>(opt, SodiumGameOptions.ChunkRendererBackendOption.class,
+                                SodiumGameOptions.ChunkRendererBackendOption.getAvailableOptions(disableBlacklist)))
+                        .setBinding((opts, value) -> opts.advanced.chunkRendererBackend = value, opts -> opts.advanced.chunkRendererBackend)
+                        .build()
+                )
                 .add(OptionImpl.createBuilder(boolean.class, sodiumOpts)
                         .setName("Use Vertex Array Objects")
                         .setTooltip("Helps to improve performance by moving information about how vertex data should be rendered into " +
@@ -259,7 +260,8 @@ public class SodiumGameOptionPages {
                         .setBinding((opts, value) -> opts.advanced.useVertexArrayObjects = value, opts -> opts.advanced.useVertexArrayObjects)
                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
                         .setImpact(OptionImpact.LOW)
-                        .build())
+                        .build()
+                )
                 .build());
 
         groups.add(OptionGroup.createBuilder()
@@ -349,9 +351,9 @@ public class SodiumGameOptionPages {
                         .setControl(TickBoxControl::new)
                         .setBinding((opts, value) -> opts.advanced.ignoreDriverBlacklist = value, opts -> opts.advanced.ignoreDriverBlacklist)
                         .build()
+
                 )
                 .build());
-
         return new OptionPage("Advanced", ImmutableList.copyOf(groups));
     }
 

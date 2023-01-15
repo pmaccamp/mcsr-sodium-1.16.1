@@ -1,5 +1,7 @@
-package me.jellysquid.mods.sodium.client.render.chunk.backends.multidraw;
+package me.jellysquid.mods.sodium.client.render.chunk.backends.gl43;
 
+import me.jellysquid.mods.sodium.client.render.chunk.multidraw.ChunkDrawCallBatcher;
+import me.jellysquid.mods.sodium.client.render.chunk.multidraw.StructBuffer;
 import org.lwjgl.system.MemoryUtil;
 
 public class IndirectCommandBufferVector extends StructBuffer {

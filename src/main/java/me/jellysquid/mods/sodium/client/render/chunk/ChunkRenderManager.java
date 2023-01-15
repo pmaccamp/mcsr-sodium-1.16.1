@@ -9,8 +9,6 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import me.jellysquid.mods.sodium.client.SodiumClientMod;
-import me.jellysquid.mods.sodium.client.gl.device.CommandList;
-import me.jellysquid.mods.sodium.client.gl.device.RenderDevice;
 import me.jellysquid.mods.sodium.client.gl.compat.LegacyFogHelper;
 import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildResult;
@@ -72,7 +70,6 @@ public class ChunkRenderManager<T extends ChunkGraphicsState> implements ChunkSt
 
     private final ObjectArrayFIFOQueue<ChunkRenderContainer<T>> importantRebuildQueue = new ObjectArrayFIFOQueue<>();
     private final ObjectArrayFIFOQueue<ChunkRenderContainer<T>> rebuildQueue = new ObjectArrayFIFOQueue<>();
-    private final ObjectArrayFIFOQueue<ChunkRenderContainer<T>> unloadQueue = new ObjectArrayFIFOQueue<>();
 
     @SuppressWarnings("unchecked")
     private final ChunkRenderList<T>[] chunkRenderLists = new ChunkRenderList[BlockRenderPass.COUNT];
@@ -116,7 +113,6 @@ public class ChunkRenderManager<T extends ChunkGraphicsState> implements ChunkSt
 
     public void update(Camera camera, FrustumExtended frustum, int frame, boolean spectator) {
         this.reset();
-        this.unloadPending();
 
         this.setup(camera);
         this.iterateChunks(camera, frustum, frame, spectator);
@@ -285,13 +281,6 @@ public class ChunkRenderManager<T extends ChunkGraphicsState> implements ChunkSt
         this.visibleChunkCount = 0;
     }
 
-    private void unloadPending() {
-        while (!this.unloadQueue.isEmpty()) {
-            this.unloadQueue.dequeue()
-                    .delete();
-        }
-    }
-
     public Collection<BlockEntity> getVisibleBlockEntities() {
         return this.visibleBlockEntities;
     }
@@ -353,7 +342,8 @@ public class ChunkRenderManager<T extends ChunkGraphicsState> implements ChunkSt
             ChunkRenderContainer<T> render = column.getRender(y);
 
             if (render != null) {
-                this.unloadQueue.enqueue(render);
+                render.delete();
+
                 this.renders.remove(render.getId());
             }
 
@@ -411,14 +401,9 @@ public class ChunkRenderManager<T extends ChunkGraphicsState> implements ChunkSt
         ChunkRenderList<T> chunkRenderList = this.chunkRenderLists[pass.ordinal()];
         ChunkRenderListIterator<T> iterator = chunkRenderList.iterator(pass.isTranslucent());
 
-        RenderDevice device = RenderDevice.INSTANCE;
-        CommandList commandList = device.createCommandList();
-
         this.backend.begin(matrixStack);
-        this.backend.render(commandList, iterator, new ChunkCameraContext(x, y, z));
+        this.backend.render(iterator, new ChunkCameraContext(x, y, z));
         this.backend.end(matrixStack);
-
-        commandList.flush();
     }
 
     public void tickVisibleRenders() {
@@ -464,7 +449,7 @@ public class ChunkRenderManager<T extends ChunkGraphicsState> implements ChunkSt
         this.dirty |= this.builder.performPendingUploads();
 
         if (!futures.isEmpty()) {
-            this.backend.upload(RenderDevice.INSTANCE.createCommandList(), new FutureDequeDrain<>(futures));
+            this.backend.upload(new FutureDequeDrain<>(futures));
         }
     }
 

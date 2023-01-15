@@ -1,7 +1,6 @@
 package me.jellysquid.mods.sodium.client.gl.shader;
 
 import me.jellysquid.mods.sodium.client.gl.GlObject;
-import me.jellysquid.mods.sodium.client.gl.device.RenderDevice;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,9 +18,7 @@ public class GlShader extends GlObject {
 
     private final Identifier name;
 
-    public GlShader(RenderDevice owner, ShaderType type, Identifier name, String src, ShaderConstants constants) {
-        super(owner);
-
+    public GlShader(ShaderType type, Identifier name, String src, ShaderConstants constants) {
         this.name = name;
 
         src = processShader(src, constants);

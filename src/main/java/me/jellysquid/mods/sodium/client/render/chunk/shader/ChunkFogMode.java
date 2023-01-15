@@ -3,6 +3,7 @@ package me.jellysquid.mods.sodium.client.render.chunk.shader;
 import com.google.common.collect.ImmutableList;
 import me.jellysquid.mods.sodium.client.SodiumClientMod;
 import me.jellysquid.mods.sodium.client.gl.shader.ShaderConstants;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL20C;
 
@@ -30,5 +31,11 @@ public enum ChunkFogMode {
 
     public List<String> getDefines() {
         return this.defines;
+    }
+
+    public void addConstants(ShaderConstants.Builder constants) {
+        for (String define : this.defines) {
+            constants.define(define);
+        }
     }
 }
